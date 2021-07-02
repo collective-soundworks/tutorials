@@ -1,0 +1,13 @@
+{
+  name: 'Distributed Step Sequencer',
+  author: '',
+  clients: {
+    player: {
+      target: 'browser',
+      default: true,
+    },
+    controller: {
+      target: 'browser',
+    },
+  },
+}
