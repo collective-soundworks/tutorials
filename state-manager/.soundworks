@@ -1,0 +1,5 @@
+{
+  "name": "state-manager",
+  "eslint": true,
+  "language": "js"
+}
