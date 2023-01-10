@@ -6,8 +6,5 @@
       target: 'browser',
       default: true,
     },
-    thing: {
-      target: 'node',
-    },
   },
 }

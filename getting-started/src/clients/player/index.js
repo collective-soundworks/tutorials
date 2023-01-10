@@ -59,11 +59,8 @@ async function main($container) {
     await client.start();
 
     const globals = await client.stateManager.attach('globals');
-    console.log('globals shared state', globals.getValues());
 
     globals.onUpdate(updates => {
-      console.log(updates);
-
       if (updates.trigger) {
         $container.style.backgroundColor = 'white';
 
@@ -73,7 +70,7 @@ async function main($container) {
       }
     });
 
-    $container.innerHTML = `<h1 style="padding:20px;">Click here!</h1>`;
+    $container.innerHTML = `<h1 style="margin:0; padding:20px;">Click here!</h1>`;
 
     $container.addEventListener('click', () => {
       globals.set({ trigger: true });
