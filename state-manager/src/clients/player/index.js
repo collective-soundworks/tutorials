@@ -1,6 +1,7 @@
 import '@soundworks/helpers/polyfills.js';
 import { Client } from '@soundworks/core/client.js';
 import launcher from '@soundworks/helpers/launcher.js';
+import { html } from 'lit';
 
 import createLayout from './views/layout.js';
 
@@ -58,11 +59,35 @@ async function main($container) {
      */
     await client.start();
 
-    // create application layout ($layout is a raw lit component,
-    // see https://lit.dev/), and do your own stuff!
+    const globals = await client.stateManager.attach('globals');
+    // create the player state with the client id
+    const player = await client.stateManager.create('player', { id: client.id });
 
     /* eslint-disable-next-line no-unused-vars */
     const $layout = createLayout(client, $container);
+
+    // update layout when the states are updated
+    globals.onUpdate(() => $layout.requestUpdate());
+    player.onUpdate(() => $layout.requestUpdate());
+
+    const component = {
+      render: () => {
+        return html`
+          <h1>Client n° ${player.get('id')}</h1>
+          <h2>Globals</h2>
+          <ul>
+            <li>volume: ${globals.get('volume')}</li>
+            <li>mute: ${globals.get('mute')}</li>
+          </ul>
+          <h2>Player</h2>
+          <ul>
+            <li>frequency: ${player.get('frequency')}</li>
+          </ul>
+        `
+      }
+    };
+
+    $layout.addComponent(component);
 
   } catch(err) {
     console.error(err);

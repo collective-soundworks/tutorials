@@ -6,5 +6,8 @@
       target: 'browser',
       default: true,
     },
+    controller: {
+      target: 'browser',
+    },
   },
 }

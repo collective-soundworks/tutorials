@@ -19,6 +19,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@ircam/simple-components": "^2.2.2",
     "@soundworks/core": "^4.0.0-alpha.0",
     "@soundworks/helpers": "^1.0.0-alpha.2",
     "json5": "^2.2.2",
