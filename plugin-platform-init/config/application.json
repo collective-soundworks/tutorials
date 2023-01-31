@@ -1,0 +1,10 @@
+{
+  name: 'Hello Plugins',
+  author: 'me & myself',
+  clients: {
+    player: {
+      target: 'browser',
+      default: true,
+    },
+  },
+}

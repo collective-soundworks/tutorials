@@ -1,0 +1,5 @@
+{
+  "name": "plugin-platform-init",
+  "eslint": true,
+  "language": "js"
+}
