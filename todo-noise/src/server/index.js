@@ -4,6 +4,11 @@ import { Server } from '@soundworks/core/server.js';
 import { loadConfig } from '../utils/load-config.js';
 import '../utils/catch-unhandled-errors.js';
 
+import pluginPlatformInit from '@soundworks/plugin-platform-init/server.js';
+
+import globalsSchema from './schemas/globals.js';
+import playerSchema from './schemas/player.js';
+
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
 // - Issue Tracker:         https://github.com/collective-soundworks/soundworks/issues
@@ -18,29 +23,17 @@ console.log(`
 --------------------------------------------------------
 `);
 
-/**
- * Create the soundworks server
- */
+// create and configure the soundworks server
 const server = new Server(config);
-// configure the server for usage within this application template
 server.useDefaultApplicationTemplate();
 
-/**
- * Register plugins and schemas
- */
-// server.pluginManager.register('my-plugin', plugin);
-// server.stateManager.registerSchema('my-schema', definition);
+server.pluginManager.register('platform-init', pluginPlatformInit);
 
-/**
- * Launch application (init plugins, http server, etc.)
- */
+// register the globals schema
+server.stateManager.registerSchema('globals', globalsSchema);
+server.stateManager.registerSchema('player', playerSchema);
+
 await server.start();
 
-// and do your own stuff!
-const globalSchema = {
-  trigger: { type: 'boolean', event: true },
-};
-
-server.stateManager.registerSchema('global', globalSchema);
-
-const global = await server.stateManager.create('global');
+// create the shared globals state instance
+const globals = await server.stateManager.create('globals');

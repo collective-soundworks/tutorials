@@ -1,10 +1,9 @@
-import { LitElement, html, render, css, nothing } from 'lit';
+import { LitElement, html, render, css } from 'lit';
 
-import '../../components/sw-infos-button.js';
-import '../../components/sw-credits.js';
+import '../../components/sw-audit.js';
 
 /**
- * This simple layout is provided for convenience, feel free to edit or even
+ * This layout is provided for convenience, feel free to edit or even
  * remove it if you want to use you own logic.
  *
  * @example
@@ -17,7 +16,7 @@ import '../../components/sw-credits.js';
  * $layout.addComponent(myComponent);
  * setInterval(() => $layout.requestUpdate(), 1000);
  */
-class SimpleLayout extends LitElement {
+class ControllerLayout extends LitElement {
   static get styles() {
     return css`
       :host {
@@ -27,22 +26,23 @@ class SimpleLayout extends LitElement {
 
       :host > div {
         padding: 20px;
-
       }
 
-      sw-infos-button {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1001;
+      header {
+        display: block;
+        height: 38px;
+        line-height: 38px;
+        background-color: #121212;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        border-bottom: 1px solid #343434;
       }
 
-      sw-credits {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        z-index: 1000;
-        width: 100vw;
+      header h1 {
+        font-size: 12px;
+        margin: 0;
+        padding-left: 20px;
       }
     `;
   }
@@ -50,13 +50,11 @@ class SimpleLayout extends LitElement {
   constructor() {
     super();
 
-    this._client = null;
+    this.client = null;
     this._components = new Set();
-
-    this._showCredits = false;
   }
 
-  // comp is anything that have a render method
+  // comp can be either a string or is anything that have a `render` method
   addComponent(comp) {
     this._components.add(comp);
     this.requestUpdate();
@@ -67,37 +65,33 @@ class SimpleLayout extends LitElement {
     this.requestUpdate();
   }
 
-  toggleCredits() {
-    this._showCredits = !this._showCredits;
-    this.requestUpdate();
-  }
-
   render() {
     return html`
+      <header>
+        <h1>${this.client.config.app.name} | ${this.client.role}</h1>
+        <sw-audit .client="${this.client}"></sw-audit>
+      </header>
       <div>
         ${Array.from(this._components).map(comp => comp.render ? comp.render() : comp)}
-
-        <!-- credits -->
-        ${this._showCredits ? html`<sw-credits .client="${this.client}"></sw-credits>` : nothing}
-        <sw-infos-button @click="${this.toggleCredits}"></sw-infos-button>
       </div>
     `;
   }
 }
 
-customElements.define('simple-layout', SimpleLayout);
+customElements.define('controller-layout', ControllerLayout);
 
 export default function createLayout(client, $container) {
   const layoutId = `${client.role}-${client.id}`;
 
   render(html`
-    <simple-layout
-      .client="${client}"
+    <controller-layout
+      .client=${client}
       id="${layoutId}"
-    ></simple-layout>
+    ></controller-layout>
   `, $container);
 
   const $layout = document.querySelector(`#${layoutId}`);
 
   return $layout;
 }
+
