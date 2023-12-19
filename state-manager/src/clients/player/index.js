@@ -1,9 +1,9 @@
 import '@soundworks/helpers/polyfills.js';
 import { Client } from '@soundworks/core/client.js';
 import launcher from '@soundworks/helpers/launcher.js';
-import { html } from 'lit';
 
-import createLayout from './views/layout.js';
+import { html, render } from 'lit';
+import '../components/sw-credits.js';
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
@@ -21,77 +21,69 @@ const config = window.SOUNDWORKS_CONFIG;
 // const audioContext = new AudioContext();
 
 async function main($container) {
-  try {
-    /**
-     * Create the soundworks client
-     */
-    const client = new Client(config);
+  /**
+   * Create the soundworks client
+   */
+  const client = new Client(config);
 
-    /**
-     * Register some soundworks plugins, you will need to install the plugins
-     * before hand (run `npx soundworks` for help)
-     */
-    // client.pluginManager.register('platform', pluginPlatform, { audioContext });
+  /**
+   * Register some soundworks plugins, you will need to install the plugins
+   * before hand (run `npx soundworks` for help)
+   */
+  // client.pluginManager.register('my-plugin', plugin);
 
-    /**
-     * Register the soundworks client into the launcher
-     *
-     * The launcher will do a bunch of stuff for you:
-     * - Display default initialization screens. If you want to change the provided
-     * initialization screens, you can import all the helpers directly in your
-     * application by doing `npx soundworks --eject-helpers`. You can also
-     * customise some global syles variables (background-color, text color etc.)
-     * in `src/clients/components/css/app.scss`.
-     * You can also change the default language of the intialization screen by
-     * setting, the `launcher.language` property, e.g.:
-     * `launcher.language = 'fr'`
-     * - By default the launcher automatically reloads the client when the socket
-     * closes or when the page is hidden. Such behavior can be quite important in
-     * performance situation where you don't want some phone getting stuck making
-     * noise without having any way left to stop it... Also be aware that a page
-     * in a background tab will have all its timers (setTimeout, etc.) put in very
-     * low priority, messing any scheduled events.
-     */
-    launcher.register(client, { initScreensContainer: $container });
+  /**
+   * Register the soundworks client into the launcher
+   *
+   * The launcher will do a bunch of stuff for you:
+   * - Display default initialization screens. If you want to change the provided
+   * initialization screens, you can import all the helpers directly in your
+   * application by doing `npx soundworks --eject-helpers`. You can also
+   * customise some global syles variables (background-color, text color etc.)
+   * in `src/clients/components/css/app.scss`.
+   * You can also change the default language of the intialization screen by
+   * setting, the `launcher.language` property, e.g.:
+   * `launcher.language = 'fr'`
+   * - By default the launcher automatically reloads the client when the socket
+   * closes or when the page is hidden. Such behavior can be quite important in
+   * performance situation where you don't want some phone getting stuck making
+   * noise without having any way left to stop it... Also be aware that a page
+   * in a background tab will have all its timers (setTimeout, etc.) put in very
+   * low priority, messing any scheduled events.
+   */
+  launcher.register(client, { initScreensContainer: $container });
 
-    /**
-     * Launch application
-     */
-    await client.start();
+  /**
+   * Launch application
+   */
+  await client.start();
 
-    const globals = await client.stateManager.attach('globals');
-    // create the player state with the client id
-    const player = await client.stateManager.create('player', { id: client.id });
+  const global = await client.stateManager.attach('global');
+  const player = await client.stateManager.create('player', { id: client.id });
 
-    /* eslint-disable-next-line no-unused-vars */
-    const $layout = createLayout(client, $container);
+  function renderApp() {
+    render(html`
+      <div class="simple-layout">
+        <h1>Player ${player.get('id')}</h1>
+        <h2>Global</h2>
+        <ul>
+          <li>volume: ${global.get('volume')}</li>
+          <li>mute: ${global.get('mute')}</li>
+        </ul>
+        <h2>Player</h2>
+        <ul>
+          <li>frequency: ${player.get('frequency')}</li>
+        </ul>
 
-    // update layout when the states are updated
-    globals.onUpdate(() => $layout.requestUpdate());
-    player.onUpdate(() => $layout.requestUpdate());
-
-    const component = {
-      render: () => {
-        return html`
-          <h1>Client n° ${player.get('id')}</h1>
-          <h2>Globals</h2>
-          <ul>
-            <li>volume: ${globals.get('volume')}</li>
-            <li>mute: ${globals.get('mute')}</li>
-          </ul>
-          <h2>Player</h2>
-          <ul>
-            <li>frequency: ${player.get('frequency')}</li>
-          </ul>
-        `
-      }
-    };
-
-    $layout.addComponent(component);
-
-  } catch(err) {
-    console.error(err);
+        <sw-credits .infos="${client.config.app}"></sw-credits>
+      </div>
+    `, $container);
   }
+
+  global.onUpdate(() => renderApp());
+  player.onUpdate(() => renderApp());
+
+  renderApp();
 }
 
 // The launcher enables instanciation of multiple clients in the same page to

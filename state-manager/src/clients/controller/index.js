@@ -2,13 +2,13 @@ import '@soundworks/helpers/polyfills.js';
 import { Client } from '@soundworks/core/client.js';
 import launcher from '@soundworks/helpers/launcher.js';
 
-import { html } from 'lit';
-import '@ircam/simple-components/sc-number.js';
-import '@ircam/simple-components/sc-slider.js';
-import '@ircam/simple-components/sc-text.js';
-import '@ircam/simple-components/sc-toggle.js';
+import { html, render } from 'lit';
+import '@ircam/sc-components/sc-number.js';
+import '@ircam/sc-components/sc-slider.js';
+import '@ircam/sc-components/sc-text.js';
+import '@ircam/sc-components/sc-toggle.js';
 
-import createLayout from './views/layout.js';
+import '../components/sw-audit.js';
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
@@ -20,8 +20,6 @@ const config = window.SOUNDWORKS_CONFIG;
 async function main($container) {
   const client = new Client(config);
 
-  // client.pluginManager.register(pluginName, pluginFactory, {options}, [dependencies])
-
   launcher.register(client, {
     initScreensContainer: $container,
     reloadOnVisibilityChange: false,
@@ -29,94 +27,64 @@ async function main($container) {
 
   await client.start();
 
-  const globals = await client.stateManager.attach('globals');
+  const global = await client.stateManager.attach('global');
+  const players = await client.stateManager.getCollection('player');
 
-  const players = new Set();
-
-  // observe all states created on the network
-  client.stateManager.observe(async (schemaName, stateId) => {
-    // we are only interested in player schemas
-    if (schemaName === 'player') {
-      const player = await client.stateManager.attach(schemaName, stateId);
-      // store this state in our local list in relation to the node id
-      players.add(player);
-      // remove the player from the list when is deleted. The `onDetach` method is
-      // automatically called when the remote client disconnects and the state deleted
-      player.onDetach(() => {
-        players.delete(player);
-        // update the view to remove the player from the interface
-        $layout.requestUpdate();
-      });
-      // update the view vhen the state is updated
-      player.onUpdate(() => $layout.requestUpdate());
-      // update the view to display the new player
-      $layout.requestUpdate();
-    }
-  });
-
-  /* eslint-disable-next-line no-unused-vars */
-  const $layout = createLayout(client, $container);
-
-  // update interface when the shared state values are updated
-  globals.onUpdate(() => $layout.requestUpdate());
-
-  const globalsComponent = {
-    render() {
-      return html`
-        <div>
-          <h2>Globals</h2>
-          <div style="padding-bottom: 4px;">
-            <sc-text
-              readonly
-              value="volume (dB)"
-            ></sc-text>
-            <sc-slider
-              min="-60"
-              max="6"
-              value="${globals.get('volume')}"
-              @input=${e => globals.set({ volume: e.detail.value })}
-            ></sc-slider>
-          </div>
-          <div style="padding-bottom: 4px;">
-            <sc-text
-              readonly
-              value="mute"
-            ></sc-text>
-            <sc-toggle
-              ?active="${globals.get('mute')}"
-              @change=${e => globals.set({ mute: e.detail.value })}
-            ></sc-toggle>
-          </div>
-        </div>
-      `;
-    },
-  };
-
-  $layout.addComponent(globalsComponent);
-
-  const playersComponent = {
-    render() {
-      // loop through `players` to create an interface per player state
-      return html`
-        <h2>Players</h2>
-        ${Array.from(players).map(player => {
-          return html`
-            <div style="padding-bottom: 4px">
-              <sc-text value="player: ${player.get('id')} - frequency" readonly></sc-text>
-              <sc-number
-                min="50"
-                max="1000"
-                value="${player.get('frequency')}"
-                @input="${e => player.set({ frequency: e.detail.value })}"
-              ></sc-number>
+  function renderApp() {
+    render(html`
+      <div class="controller-layout">
+        <header>
+          <h1>${client.config.app.name} | ${client.role}</h1>
+          <sw-audit .client="${client}"></sw-audit>
+        </header>
+        <section>
+          <div>
+            <h2>Global</h2>
+            <div style="padding-bottom: 4px;">
+              <sc-text readonly value="volume (dB)"></sc-text>
+              <sc-slider
+                min="-60"
+                max="6"
+                value=${global.get('volume')}
+                @input=${e => global.set({ volume: e.detail.value })}
+              ></sc-slider>
             </div>
-          `;
-        })}
-      `;
-    }
+            <div style="padding-bottom: 4px;">
+              <sc-text readonly value="mute"></sc-text>
+              <sc-toggle
+                ?active=${global.get('mute')}
+                @change=${e => global.set({ mute: e.detail.value })}
+              ></sc-toggle>
+            </div>
+          </div>
+          <div>
+            <h2>Players</h2>
+            ${players.map(player => {
+              return html`
+                <div>
+                  <sc-text>player: ${player.get('id')} - frequency</sc-text>
+                  <sc-number
+                    min="50"
+                    max="1000"
+                    value=${player.get('frequency')}
+                    @input=${e => player.set({ frequency: e.detail.value })}
+                  ></sc-number>
+                </div>
+              `
+            })}
+          </div>
+        </section>
+      </div>
+    `, $container);
   }
 
-  $layout.addComponent(playersComponent);
+  // update interface when the shared state values are updated
+  global.onUpdate(() => renderApp());
+  players.onAttach(() => renderApp());
+  players.onDetach(() => renderApp());
+  players.onUpdate(() => renderApp());
+
+  renderApp();
 }
 
 launcher.execute(main, {

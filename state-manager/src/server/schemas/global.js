@@ -1,5 +1,5 @@
 export default {
-  // master volume in dB [-60, 6]
+  // volume volume in dB [-60, 6]
   volume: {
     type: 'float',
     min: -60,

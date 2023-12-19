@@ -4,7 +4,7 @@ import { Server } from '@soundworks/core/server.js';
 import { loadConfig } from '../utils/load-config.js';
 import '../utils/catch-unhandled-errors.js';
 
-import globalsSchema from './schemas/globals.js';
+import globalSchema from './schemas/global.js';
 import playerSchema from './schemas/player.js';
 
 // - General documentation: https://soundworks.dev/
@@ -28,7 +28,8 @@ const server = new Server(config);
 // configure the server for usage within this application template
 server.useDefaultApplicationTemplate();
 
-server.stateManager.registerSchema('globals', globalsSchema);
+// register the schemas
+server.stateManager.registerSchema('global', globalSchema);
 server.stateManager.registerSchema('player', playerSchema);
 
 /**
@@ -36,5 +37,6 @@ server.stateManager.registerSchema('player', playerSchema);
  */
 await server.start();
 
-const globals = await server.stateManager.create('globals');
-console.log(globals.getValues());
+const global = await server.stateManager.create('global');
+console.log(global.getValues());
+
