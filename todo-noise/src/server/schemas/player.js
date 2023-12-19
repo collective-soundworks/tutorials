@@ -10,7 +10,7 @@ export default {
     min: 50,
     max: 2000,
   },
-  synthStartStop: {
+  synthToggle: {
     type: 'boolean',
     default: false,
     immediate: true,
@@ -21,4 +21,3 @@ export default {
     immediate: true,
   },
 };
-

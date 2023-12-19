@@ -1,13 +1,12 @@
 import '@soundworks/helpers/polyfills.js';
 import { Client } from '@soundworks/core/client.js';
 import launcher from '@soundworks/helpers/launcher.js';
-import { html } from 'lit';
 
 import pluginPlatformInit from '@soundworks/plugin-platform-init/client.js';
 
-import createLayout from './views/layout.js';
+import { html, render } from 'lit';
+import '../components/sw-credits.js';
 import '../components/sw-player.js';
-
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
@@ -18,10 +17,7 @@ import '../components/sw-player.js';
  * Grab the configuration object written by the server in the `index.html`
  */
 const config = window.SOUNDWORKS_CONFIG;
-
-/**
- * If multiple clients are emulated you might to want to share the audio context
- */
+// If multiple clients are emulated you might to want to share the audio context
 const audioContext = new AudioContext();
 
 async function main($container) {
@@ -29,12 +25,17 @@ async function main($container) {
    * Create the soundworks client
    */
   const client = new Client(config);
-
   // register the platform-init plugin, and pass it the AudioContext instance
   // so that it is resumed on the splashscreen user gesture
   client.pluginManager.register('platform-init', pluginPlatformInit, {
     audioContext
   });
+
+  /**
+   * Register some soundworks plugins, you will need to install the plugins
+   * before hand (run `npx soundworks` for help)
+   */
+  // client.pluginManager.register('my-plugin', plugin);
 
   /**
    * Register the soundworks client into the launcher
@@ -61,39 +62,96 @@ async function main($container) {
    * Launch application
    */
   await client.start();
-
-  const globals = await client.stateManager.attach('globals');
+  // attach to the global state
+  const global = await client.stateManager.attach('global');
   const player = await client.stateManager.create('player', {
     id: client.id,
   });
 
-  const $layout = createLayout(client, $container);
+  function renderApp() {
+    render(html`
+      <div class="simple-layout">
+        <sw-player .player=${player}></sw-player>
 
-  $layout.addComponent(html`<sw-player .playerState=${player}></sc-player>`);
+        <h2>Global</h2>
+        <p>Master: ${global.get('master')}</p>
+        <p>Mute: ${global.get('mute')}</p>
 
-  // add simple log component to the layout
-  $layout.addComponent({
-    render: () => {
-      return html`
-        <h2>Globals</h2>
-        <p>Master: ${globals.get('master')}</p>
-        <p>Mute: ${globals.get('mute')}</p>
-      `;
-    }
-  });
+        <sw-credits .infos="${client.config.app}"></sw-credits>
+      </div>
+    `, $container);
+  }
 
-  // create the audio chain
-  // [mute] -> [master] -> [destination]
+  // create the master bus chain
+  // [mute <GainNode>] -> [master <GainNode>] -> [destination]
   const master = audioContext.createGain();
-  master.gain.value = globals.get('master');
+  master.gain.value = global.get('master');
   master.connect(audioContext.destination);
 
   const mute = audioContext.createGain();
-  mute.gain.value = globals.get('mute') ? 0 : 1;
+  mute.gain.value = global.get('mute') ? 0 : 1;
   mute.connect(master);
 
-  globals.onUpdate(updates => {
-    for (let [key, value] of Object.entries(updates)) {
+  let synthToggle = null;
+
+  player.onUpdate(updates => {
+    console.log(updates, synthToggle);
+    for (let key in updates) {
+      const value = updates[key];
+
+      switch (key) {
+        case 'synthToggle': {
+          if (value === true) {
+            // start the synth
+            synthToggle = audioContext.createOscillator();
+            synthToggle.connect(mute);
+            synthToggle.frequency.value = player.get('frequency');
+            synthToggle.start();
+          } else if (synthToggle !== null) {
+            // stop the synth
+            synthToggle.stop();
+            synthToggle = null;
+          }
+          break;
+        }
+        case 'frequency': {
+          // update the start / stop synth frequency if it is runnings
+          if (synthToggle !== null) {
+            const now = audioContext.currentTime;
+            synthToggle.frequency.setTargetAtTime(value, now, 0.02);
+          }
+          break;
+        }
+        case 'synthTrigger': {
+          if (value !== null) {
+            // trigger a 1 second sound at twice the frequency
+            const now = audioContext.currentTime;
+
+            const env = audioContext.createGain();
+            env.connect(mute);
+            env.gain.value = 0;
+            env.gain.setValueAtTime(0, now);
+            env.gain.linearRampToValueAtTime(1, now + 0.01);
+            env.gain.exponentialRampToValueAtTime(0.001, now + 1);
+
+            const osc = audioContext.createOscillator();
+            osc.connect(env);
+            osc.frequency.value = player.get('frequency') * 2;
+            osc.start(now);
+            osc.stop(now + 1);
+          }
+          break;
+        }
+      }
+    }
+
+    renderApp();
+  }, true);
+
+  global.onUpdate(updates => {
+    for (let key in updates) {
+      const value = updates[key];
+
       switch (key) {
         case 'master': {
           const now = audioContext.currentTime;
@@ -108,61 +166,9 @@ async function main($container) {
         }
       }
     }
-
-    // update the view each time to log current globals values
-    $layout.requestUpdate();
-  });
-
-  // hold the oscillator for the start / stop synth
-  let synthStartStop = null;
-
-  player.onUpdate(updates => {
-    for (let [key, value] of Object.entries(updates)) {
-      switch (key) {
-        case 'synthStartStop': {
-          if (value === true) {
-            // start the synth
-            synthStartStop = audioContext.createOscillator();
-            synthStartStop.connect(mute);
-            synthStartStop.frequency.value = player.get('frequency');
-            synthStartStop.start();
-          } else {
-            // stop the synth
-            synthStartStop.stop();
-            synthStartStop = null;
-          }
-          break;
-        }
-        case 'synthTrigger': {
-          // trigger a 1 second sound at twice the frequency
-          const now = audioContext.currentTime;
-
-          const env = audioContext.createGain();
-          env.connect(mute);
-          env.gain.value = 0;
-          env.gain.setValueAtTime(0, now);
-          env.gain.linearRampToValueAtTime(1, now + 0.01);
-          env.gain.exponentialRampToValueAtTime(0.001, now + 1);
-
-          const osc = audioContext.createOscillator();
-          osc.connect(env);
-          osc.frequency.value = player.get('frequency') * 2;
-          osc.start(now);
-          osc.stop(now + 1);
-          break;
-        }
-        case 'frequency': {
-          // update the start / stop synth frequency if it is runnings
-          if (synthStartStop !== null) {
-            const now = audioContext.currentTime;
-            synthStartStop.frequency.setTargetAtTime(value, now, 0.02);
-          }
-          break;
-        }
-      }
-    }
-  });
-
+    // update the view to log current global values
+    renderApp();
+  }, true);
 }
 
 // The launcher enables instanciation of multiple clients in the same page to

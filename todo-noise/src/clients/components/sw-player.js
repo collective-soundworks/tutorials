@@ -1,17 +1,16 @@
 import { LitElement, html, css } from 'lit';
-import { live } from 'lit/directives/live.js';
 
 // import needed GUI components
-import '@ircam/simple-components/sc-text.js';
-import '@ircam/simple-components/sc-slider.js';
-import '@ircam/simple-components/sc-toggle.js';
-import '@ircam/simple-components/sc-bang.js';
+import '@ircam/sc-components/sc-text.js';
+import '@ircam/sc-components/sc-slider.js';
+import '@ircam/sc-components/sc-toggle.js';
+import '@ircam/sc-components/sc-bang.js';
 
 class SwPlayer extends LitElement {
   constructor() {
     super();
-    // stores the `player` state
-    this.playerState = null;
+    // reference to the `player` state
+    this.player = null;
     // stores the `unsubscribe` callback returned by the `state.onUpdate` methos
     // https://soundworks.dev/soundworks/client.SharedState.html#onUpdate
     this._unobserve = null;
@@ -20,7 +19,7 @@ class SwPlayer extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     // update the component when a state change occurs
-    this._unobserve = this.playerState.onUpdate(() => this.requestUpdate());
+    this._unobserve = this.player.onUpdate(() => this.requestUpdate());
   }
 
   disconnectedCallback() {
@@ -32,29 +31,29 @@ class SwPlayer extends LitElement {
   render() {
     // create controls for the player state
     return html`
-      <h2>Player [id: ${this.playerState.get('id')}]</h2>
+      <h2>Player [id: ${this.player.get('id')}]</h2>
       <div style="padding-bottom: 4px;">
-        <sc-text value="Frequency" readonly></sc-text>
+        <sc-text>Frequency</sc-text>
         <sc-slider
           width="400"
-          min=${this.playerState.getSchema('frequency').min}
-          max=${this.playerState.getSchema('frequency').max}
-          value=${this.playerState.get('frequency')}
-          @input=${e => this.playerState.set({ frequency: e.detail.value })}
+          min=${this.player.getSchema('frequency').min}
+          max=${this.player.getSchema('frequency').max}
+          value=${this.player.get('frequency')}
+          @input=${e => this.player.set({ frequency: e.detail.value })}
         ></sc-slider>
       </div>
       <div style="padding-bottom: 4px;">
-        <sc-text value="Start / Stop synth" readonly></sc-text>
+        <sc-text>Start / Stop synth</sc-text>
         <sc-toggle
-          ?active=${this.playerState.get('synthStartStop')}
-          @change=${e => this.playerState.set({ synthStartStop: e.detail.value })}
+          ?active=${this.player.get('synthToggle')}
+          @change=${e => this.player.set({ synthToggle: e.detail.value })}
         ></sc-toggle>
       </div>
       <div style="padding-bottom: 4px;">
-        <sc-text value="Trigger Synth" readonly></sc-text>
+        <sc-text>Trigger Synth</sc-text>
         <sc-bang
-          ?active=${live(this.playerState.get('synthTrigger'))}
-          @input=${e => this.playerState.set({ synthTrigger: e.detail.value })}
+          ?active=${this.player.get('synthTrigger')}
+          @input=${e => this.player.set({ synthTrigger: e.detail.value })}
         ></sc-bang>
       </div>
     `;

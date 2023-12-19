@@ -6,7 +6,7 @@ import '../utils/catch-unhandled-errors.js';
 
 import pluginPlatformInit from '@soundworks/plugin-platform-init/server.js';
 
-import globalsSchema from './schemas/globals.js';
+import globalSchema from './schemas/global.js';
 import playerSchema from './schemas/player.js';
 
 // - General documentation: https://soundworks.dev/
@@ -23,17 +23,18 @@ console.log(`
 --------------------------------------------------------
 `);
 
-// create and configure the soundworks server
+/**
+ * Create the soundworks server
+ */
 const server = new Server(config);
 server.useDefaultApplicationTemplate();
 
 server.pluginManager.register('platform-init', pluginPlatformInit);
-
-// register the globals schema
-server.stateManager.registerSchema('globals', globalsSchema);
+// register the global schema
+server.stateManager.registerSchema('global', globalSchema);
 server.stateManager.registerSchema('player', playerSchema);
 
 await server.start();
-
-// create the shared globals state instance
-const globals = await server.stateManager.create('globals');
+// create the shared global state instance
+const global = await server.stateManager.create('global');
+console.log(global.getValues());

@@ -2,15 +2,12 @@ import '@soundworks/helpers/polyfills.js';
 import { Client } from '@soundworks/core/client.js';
 import launcher from '@soundworks/helpers/launcher.js';
 
-import createLayout from './views/layout.js';
+import { html, render } from 'lit';
+import '../components/sw-audit.js';
 
-import { html, nothing } from 'lit';
-import { keyed } from 'lit/directives/keyed.js';
-
-import '@ircam/simple-components/sc-text.js';
-import '@ircam/simple-components/sc-slider.js';
-import '@ircam/simple-components/sc-toggle.js';
-import '@ircam/simple-components/sc-button.js';
+import '@ircam/sc-components/sc-text.js';
+import '@ircam/sc-components/sc-slider.js';
+import '@ircam/sc-components/sc-toggle.js';
 import '../components/sw-player.js';
 
 // - General documentation: https://soundworks.dev/
@@ -30,79 +27,48 @@ async function main($container) {
 
   await client.start();
 
-  const globals = await client.stateManager.attach('globals');
+  const global = await client.stateManager.attach('global');
   const players = await client.stateManager.getCollection('player');
 
-  const $layout = createLayout(client, $container);
+  function renderApp() {
+    render(html`
+      <div class="controller-layout">
+        <header>
+          <h1>${client.config.app.name} | ${client.role}</h1>
+          <sw-audit .client="${client}"></sw-audit>
+        </header>
+        <section>
+          <h2>Global</h2>
+          <div style="padding-bottom: 4px">
+            <sc-text>master</sc-text>
+            <sc-slider
+              min=${global.getSchema('master').min}
+              max=${global.getSchema('master').max}
+              value=${global.get('master')}
+              @input=${e => global.set({ master: e.detail.value })}
+            ></sc-slider>
+          </div>
+          <div style="padding-bottom: 4px">
+            <sc-text>mute</sc-text>
+            <sc-toggle
+              ?active=${global.get('mute')}
+              @change=${e => global.set({ mute: e.detail.value })}
+            ></sc-toggle>
+          </div>
 
-  // add a control component to the layout
-  $layout.addComponent({
-    render: () => {
-      return html`
-        <h2>Globals</h2>
-        <div style="padding-bottom: 4px">
-          <sc-text value="master" readonly></sc-text>
-          <sc-slider
-            min=${globals.getSchema('master').min}
-            max=${globals.getSchema('master').max}
-            value=${globals.get('master')}
-            width="400"
-            @input=${e => globals.set({ master: e.detail.value })}
-          ></sc-slider>
-        </div>
-        <div style="padding-bottom: 4px">
-          <sc-text value="mute" readonly></sc-text>
-          <sc-toggle
-            ?active=${globals.get('mute')}
-            @change=${e => globals.set({ mute: e.detail.value })}
-          ></sc-toggle>
-        </div>
-      `;
-    }
-  });
+          ${players.map(player => {
+            return html`<sw-player .player=${player}></sw-player>`;
+          })}
+        </section>
+      </div>
+    `, $container);
+  }
 
-  // placeholder of the remote controlled player state instance
-  let remoteControlledPlayer = null;
-  // collection
-  $layout.addComponent({
-    render: () => {
-      return html`
-        <h2>Connected players</h2>
-        ${players.map(player => {
-          return html`
-            <sc-button
-              value=${player.get('id')}
-              @input=${e => {
-                remoteControlledPlayer = player;
-                $layout.requestUpdate();
-              }}
-            ></sc-button>
-          `;
-        })}
-        <h2>Remote controlled player</h2>
-        ${remoteControlledPlayer !== null
-          ? keyed(
-              remoteControlledPlayer.get('id'),
-              html`<sw-player .playerState=${remoteControlledPlayer}></sw-player>`
-            )
-          : nothing
-        }
-      `;
-    }
-  });
-
-  // update the view when the globals state change
-  globals.onUpdate(() => $layout.requestUpdate());
-
-  // if a player connects or disconnect, we want to update the view accordingly
-  players.onAttach(() => $layout.requestUpdate());
-  players.onDetach(player => {
-    // if the player is deleted, we reset the view
-    if (player === remoteControlledPlayer) {
-      remoteControlledPlayer = null;
-    }
-    $layout.requestUpdate();
-  });
+  global.onUpdate(() => renderApp(), true);
+  // refresh the screen on each players collection event
+  players.onAttach(() => renderApp());
+  players.onDetach(() => renderApp());
+  players.onUpdate(() => renderApp());
 }
 
 launcher.execute(main, {
