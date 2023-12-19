@@ -1,5 +1,5 @@
 {
-  name: 'Hello Plugins',
+  name: 'Hello Plugin!',
   author: 'me & myself',
   clients: {
     player: {

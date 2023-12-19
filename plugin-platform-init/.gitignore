@@ -4,8 +4,8 @@
 .build
 .data
 
-# ignore all environement config files
-/config/env/*
+# ignore all environment config files
+/config/env-*
 
 # junk files
 package-lock.json

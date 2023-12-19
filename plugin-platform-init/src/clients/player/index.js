@@ -4,7 +4,8 @@ import launcher from '@soundworks/helpers/launcher.js';
 // import the client-side part of the `platform-init` plugin
 import pluginPlatformInit from '@soundworks/plugin-platform-init/client.js';
 
-import createLayout from './views/layout.js';
+import { html, render } from 'lit';
+import '../components/sw-credits.js';
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
@@ -15,13 +16,15 @@ import createLayout from './views/layout.js';
  * Grab the configuration object written by the server in the `index.html`
  */
 const config = window.SOUNDWORKS_CONFIG;
-
-// If multiple clients are emulated you might to want to share some resources
+// create a global audio context
 const audioContext = new AudioContext();
 
 async function main($container) {
-  // create the soundworks client
+  /**
+   * Create the soundworks client
+   */
   const client = new Client(config);
+
   // register the plugin into the soundworks' plugin manager
   client.pluginManager.register('platform-init', pluginPlatformInit, { audioContext });
 
@@ -46,10 +49,9 @@ async function main($container) {
    */
   launcher.register(client, { initScreensContainer: $container });
 
-  console.log(`> before start - audioContext is "${audioContext.state}"`);
   // launch application
+  console.log(`> before start - audioContext is "${audioContext.state}"`);
   await client.start();
-
   console.log(`> after start - audioContext is "${audioContext.state}"`);
 
   const now = audioContext.currentTime;
@@ -58,21 +60,26 @@ async function main($container) {
   env.connect(audioContext.destination);
   env.gain.setValueAtTime(0, now);
   env.gain.linearRampToValueAtTime(0.5, now + 0.01);
-  env.gain.exponentialRampToValueAtTime(0.0001, now + 1);
+  env.gain.exponentialRampToValueAtTime(0.0001, now + 4);
 
   const src = audioContext.createOscillator();
   src.connect(env);
   // randomly pick a frequency on an harmonic  spectrum (150, 300, 450, etc...)
   src.frequency.value = 150 + Math.floor(Math.random() * 10) * 150;
   src.start(now);
-  src.stop(now + 1);
+  src.stop(now + 4);
 
-  // The `$layout` is provided as a convenience and is not required by soundworks,
-  // its full source code is located in the `./views/layout.js` file, so feel free
-  // to edit it to match your needs or even to delete it.
-  const $layout = createLayout(client, $container);
+  function renderApp() {
+    render(html`
+      <div class="simple-layout">
+        <p>Hello ${client.config.app.name}!</p>
 
-  // do your own stuff!
+        <sw-credits .infos="${client.config.app}"></sw-credits>
+      </div>
+    `, $container);
+  }
+
+  renderApp();
 }
 
 // The launcher enables instanciation of multiple clients in the same page to
