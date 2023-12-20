@@ -1,0 +1,5 @@
+{
+  "name": "plugin-sync",
+  "eslint": true,
+  "language": "js"
+}
