@@ -1,0 +1,13 @@
+{
+  name: 'node-clients',
+  author: '',
+  clients: {
+    controller: {
+      target: 'browser',
+      default: true,
+    },
+    thing: {
+      target: 'node',
+    },
+  },
+}
