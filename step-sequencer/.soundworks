@@ -1,0 +1,5 @@
+{
+  "name": "step-sequencer",
+  "eslint": true,
+  "language": "js"
+}

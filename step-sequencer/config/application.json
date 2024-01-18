@@ -1,0 +1,13 @@
+{
+  name: 'step-sequencer',
+  author: '',
+  clients: {
+    controller: {
+      target: 'browser',
+      default: true,
+    },
+    thing: {
+      target: 'node',
+    },
+  },
+}
