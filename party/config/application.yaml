@@ -1,0 +1,6 @@
+name: party
+author: ""
+clients:
+  speaker:
+    target: browser
+    default: true
