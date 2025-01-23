@@ -1,6 +1,6 @@
 name: party
 author: ""
 clients:
-  speaker:
+  dancer:
     target: browser
     default: true

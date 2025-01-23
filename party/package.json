@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@ircam/sc-components": "^3.0.0-alpha.60",
+    "@ircam/sc-loader": "^1.1.0",
     "@soundworks/core": "^4.0.0-alpha.21",
     "@soundworks/helpers": "^1.0.0-alpha.12",
     "@soundworks/plugin-filesystem": "^2.0.0-alpha.7",
