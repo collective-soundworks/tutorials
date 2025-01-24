@@ -99,7 +99,7 @@ export class Audio {
     time = this.sync.getSyncTime(),
   } = {}) {
     if(!this.source) {
-      console.error('no audio source to stop');
+      // do not report error (mostly when sound was not already started)
       return;
     }
     const now = this.sync.getSyncTime();
