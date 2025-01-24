@@ -23,6 +23,7 @@
     "@soundworks/helpers": "^1.0.0-alpha.12",
     "@soundworks/plugin-filesystem": "^2.0.0-alpha.7",
     "@soundworks/plugin-platform-init": "^1.0.0-alpha.5",
+    "@soundworks/plugin-sync": "^2.0.0-alpha.4",
     "json5": "^2.2.3",
     "lit": "^3.1.3"
   },

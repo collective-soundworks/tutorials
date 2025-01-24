@@ -1,5 +1,5 @@
 export const schema = {
-  sounds: {
+  soundCollection: {
     type: 'any',
     default: [],
   },
@@ -11,6 +11,16 @@ export const schema = {
   transport: {
     type: 'string',
     default: 'stop',
+  },
+  // absolute sync time (in seconds)
+  transportTime: {
+    type: 'float',
+    default: 0,
+  },
+  // to compensate latency
+  transportLookAhead: {
+    type: 'float',
+    default: 0.5, // in seconds
   },
   loop: {
     type: 'boolean',

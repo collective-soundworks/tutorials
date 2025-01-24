@@ -1,6 +1,7 @@
 import '@soundworks/helpers/polyfills.js';
 import { Client } from '@soundworks/core/client.js';
 import pluginPlatformInit from '@soundworks/plugin-platform-init/client.js';
+import pluginSync from '@soundworks/plugin-sync/client.js';
 import { loadConfig, launcher } from '@soundworks/helpers/browser.js';
 import { html, render } from 'lit';
 import '@ircam/sc-components/sc-select.js';
@@ -19,12 +20,13 @@ import { Audio } from './audio.js';
 // - Wizard & Tools:        `npx soundworks`
 async function main($container) {
 
+  const audioContext = new AudioContext();
+
   /**
    * Load configuration from config files and create the soundworks client
    */
   const config = loadConfig();
   const client = new Client(config);
-  const audio = new Audio();
 
   launcher.register(client, {
     initScreensContainer: $container,
@@ -32,14 +34,30 @@ async function main($container) {
   });
 
   client.pluginManager.register('platformInit', pluginPlatformInit, {
-    audioContext: audio.context,
+    audioContext,
    });
 
+  client.pluginManager.register('sync', pluginSync, {
+    getTimeFunction: () => audioContext.currentTime,
+  }, ['platformInit']);
+
   await client.start();
+
+  const sync = await client.pluginManager.get('sync');
+  const audio = new Audio({
+    context: audioContext,
+    sync,
+    onended: async () => partyState.set({transport: 'stop'}),
+  });
 
   const partyState = await client.stateManager.attach(playingSchemaName);
   const partyStateUpdate = async (updates) => {
     // console.log('partyStateUpdate', updates);
+
+    let transportTime = (updates.transportTime
+      ? updates.transportTime
+      : partyState.get('transportTime')
+    );
 
     const { loop } = updates;
     if (typeof loop !== 'undefined') {
@@ -51,15 +69,15 @@ async function main($container) {
       await audio.soundLoad(sound.url);
 
       if (partyState.get('transport') === 'play') {
-        audio.soundStart();
+        audio.soundStart({ time: transportTime });
       }
     }
 
     const { transport } = updates;
     if (transport === 'stop') {
-      audio.soundStop();
+      audio.soundStop({ time: transportTime });
     } else if (transport === 'play') {
-      audio.soundStart();
+      audio.soundStart({ time: transportTime });
     }
 
     renderApp();
@@ -69,7 +87,7 @@ async function main($container) {
 
 
   function renderApp() {
-    const { sound, sounds, transport, loop } = partyState.getValues();
+    const { sound, soundCollection, transport, loop } = partyState.getValues();
 
     render(html`
       <div class="controller-layout">
@@ -81,32 +99,20 @@ async function main($container) {
           <p>
 
             <sc-select
-              .options=${sounds.reduce( (o, s) => {
+              .options=${soundCollection.reduce( (o, s) => {
                 Object.assign(o, {[s.name]: JSON.stringify(s)});
                 return o;
               }, {} ) }
               .value=${JSON.stringify(sound)}
               @change=${ async (event) => {
+                await partyState.set({transport: 'stop'});
                 const sound = JSON.parse(event.detail.value);
-                await partyState.set({sound});
+                await partyState.set({
+                  sound,
+                  transport, // resume
+                });
               } }
             ></sc-select>
-
-<!--
-            <select
-              @change=${ async (event) => {
-                const sound = JSON.parse(event.target.value);
-                await partyState.set({sound});
-              } }
-            >
-              ${sounds.map( (s) => html`
-                <option
-                  .value=${JSON.stringify(s)}
-                  ?selected=${sound && sound.url === s.url}
-                >${s.name}</option>
-               `) }
-            </select>
- -->
 
             <sc-transport
               .buttons=${['stop', 'play']}
@@ -132,10 +138,7 @@ async function main($container) {
 
   // renderApp();
   const initialValues = await partyState.getValues();
-  await partyStateUpdate({
-    ...initialValues,
-    transport: 'stop', // wait for the next action to start with others
-  });
+  await partyStateUpdate(initialValues);
 }
 
 launcher.execute(main, {

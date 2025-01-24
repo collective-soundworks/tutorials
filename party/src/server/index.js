@@ -2,6 +2,7 @@ import '@soundworks/helpers/polyfills.js';
 import { Server } from '@soundworks/core/server.js';
 import pluginPlatformInit from '@soundworks/plugin-platform-init/server.js';
 import pluginFilesystem from '@soundworks/plugin-filesystem/server.js';
+import pluginSync from '@soundworks/plugin-sync/server.js';
 import { loadConfig } from '@soundworks/helpers/node.js';
 
 import '../utils/catch-unhandled-errors.js';
@@ -35,8 +36,6 @@ server.useDefaultApplicationTemplate();
 // server.pluginManager.register('my-plugin', plugin);
 // server.stateManager.registerSchema('my-schema', definition);
 
-server.stateManager.registerSchema(schemaName, schema);
-
 server.pluginManager.register('platformInit', pluginPlatformInit);
 
 server.pluginManager.register('soundFilesystem', pluginFilesystem, {
@@ -49,12 +48,17 @@ server.pluginManager.register('soundFilesystem', pluginFilesystem, {
   publicPath: 'sounds',
 });
 
+server.pluginManager.register('sync', pluginSync);
+
+server.stateManager.registerSchema(schemaName, schema);
+
+
 /**
  * Launch application (init plugins, http server, etc.)
  */
 await server.start();
 
-// Debug
+const sync = await server.pluginManager.get('sync');
 
 const partyState = await server.stateManager.create(schemaName);
 partyState.onUpdate( (updates) => {
@@ -62,24 +66,43 @@ partyState.onUpdate( (updates) => {
 
 });
 
+server.stateManager.registerUpdateHook(schemaName, updates => {
+  let { transport, transportTime } = updates;
+
+  // add look-ahead to transport time, to be able to compensate latency
+  // (network, devices, etc.)
+  if(typeof transport !== 'undefined'
+    && typeof transportTime === 'undefined'
+  ) {
+    transportTime = sync.getSyncTime() + partyState.get('transportLookAhead');
+
+    return {
+      ...updates,
+      transportTime,
+    }
+  }
+
+  return updates;
+});
+
 const soundFileSystem = await server.pluginManager.get('soundFilesystem');
 soundFileSystem.onUpdate( async ({tree, events}) => {
-  const sounds = tree.children.filter( (node) => {
+  const soundCollection = tree.children.filter( (node) => {
     return node.type === 'file'
       && (node.extension === '.wav' || node.extension === '.mp3');
   });
 
-  partyState.set({sounds});
+  partyState.set({soundCollection});
 
-  console.log('sounds',
-    sounds.map( (node) => node.url)
+  console.log('sound collection',
+    soundCollection.map( (node) => node.url)
   );
 
-  // set default url
-  if (sounds.length > 0 && !partyState.get('sound') ) {
-    await partyState.set({ sound: sounds[0] });
+  // set initial url
+  if (soundCollection.length > 0 && !partyState.get('sound') ) {
+    await partyState.set({ sound: soundCollection[0] });
   }
 },
-  true,
+  true, // execute on start
 );
 
