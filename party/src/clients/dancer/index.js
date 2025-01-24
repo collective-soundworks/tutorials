@@ -47,7 +47,6 @@ async function main($container) {
   const audio = new Audio({
     context: audioContext,
     sync,
-    onended: async () => partyState.set({transport: 'stop'}),
   });
 
   const partyState = await client.stateManager.attach(playingSchemaName);
