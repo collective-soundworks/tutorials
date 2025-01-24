@@ -4,3 +4,5 @@ clients:
   dancer:
     target: browser
     default: true
+  speaker:
+    target: node

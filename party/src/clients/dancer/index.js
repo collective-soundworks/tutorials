@@ -12,7 +12,7 @@ import '@ircam/sc-components/sc-loop.js';
 import '../components/sw-audit.js';
 
 import { schemaName as playingSchemaName } from '../../server/schemas/partySchema.js';
-import { Audio } from './audio.js';
+import { Audio } from '../shared/audio.js';
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
@@ -28,11 +28,6 @@ async function main($container) {
   const config = loadConfig();
   const client = new Client(config);
 
-  launcher.register(client, {
-    initScreensContainer: $container,
-    reloadOnVisibilityChange: false,
-  });
-
   client.pluginManager.register('platformInit', pluginPlatformInit, {
     audioContext,
    });
@@ -40,6 +35,11 @@ async function main($container) {
   client.pluginManager.register('sync', pluginSync, {
     getTimeFunction: () => audioContext.currentTime,
   }, ['platformInit']);
+
+  launcher.register(client, {
+    initScreensContainer: $container,
+    reloadOnVisibilityChange: false,
+  });
 
   await client.start();
 
@@ -136,7 +136,6 @@ async function main($container) {
     `, $container);
   }
 
-  // renderApp();
   const initialValues = await partyState.getValues();
   await partyStateUpdate(initialValues);
 }
