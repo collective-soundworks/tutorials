@@ -8,11 +8,10 @@ import '@ircam/sc-components/sc-select.js';
 import '@ircam/sc-components/sc-transport.js';
 import '@ircam/sc-components/sc-loop.js';
 
-
 import '../components/sw-audit.js';
 
 import { schemaName as playingSchemaName } from '../../server/schemas/partySchema.js';
-import { Audio } from '../shared/audio.js';
+import { Audio, Analysis } from '../shared/audio.js';
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
@@ -48,6 +47,20 @@ async function main($container) {
     context: audioContext,
     sync,
   });
+
+  const analysis = new Analysis({
+    audioContext,
+    gain: 0,
+    analyser: {
+      fftSize: 128,
+      minDecibels: -120,
+      maxDecibels: -20,
+      smoothingTimeConstant: 0.2,
+    },
+    sources: [ audio.output ],
+    minFrequency: 50,
+    maxFrequency: 8000,
+  })
 
   const partyState = await client.stateManager.attach(playingSchemaName);
   const partyStateUpdate = async (updates) => {
@@ -137,6 +150,12 @@ async function main($container) {
 
   const initialValues = await partyState.getValues();
   await partyStateUpdate(initialValues);
+
+  setInterval(() => {
+    const amplitude = analysis.getAmplitude();
+    const $body = document.querySelector('body');
+    $body.style.backgroundColor = `rgba(255, 255, 255, ${amplitude})`;
+  }, 50);
 }
 
 launcher.execute(main, {

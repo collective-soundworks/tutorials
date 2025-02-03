@@ -1,5 +1,15 @@
 import { AudioBufferLoader } from '@ircam/sc-loader';
 
+export function dBToLin(dBValue) {
+  const factor = 1 / 20;
+  return Math.pow(10, dBValue * factor);
+}
+
+export function linToDB(linValue) {
+  const factor = 20;
+  return factor * Math.log10(linValue);
+}
+
 export class Audio {
   constructor({
     context = new AudioContext(),
@@ -16,6 +26,9 @@ export class Audio {
     this.url = null;
     this.buffer = null;
     this.source = null;
+    this.output = this.context.createGain();
+    this.output.gain.value = 1;
+    this.output.connect(this.context.destination);
   }
 
   // depends on platform, may change over time
@@ -67,7 +80,7 @@ export class Audio {
     this.source = this.context.createBufferSource();
     this.source.buffer = this.buffer;
     this.source.loop = this.loop;
-    this.source.connect(this.context.destination);
+    this.source.connect(this.output);
 
     // compensate latency
     let startTime = time - this.latencyGet();
@@ -125,6 +138,92 @@ export class Audio {
     if (this.source) {
       this.source.loop = loop;
     }
+  }
+
+}
+
+export class Analysis {
+  constructor({
+    audioContext,
+    gain = 0,
+    analyser = {}, // attributes of AnalyserNode
+    minFrequency = 0,
+    maxFrequency = audioContext.sampleRate / 2,
+    sources,
+  } = {}) {
+    this.masterGain = audioContext.createGain();
+    this.masterGain.gain.value = dBToLin(gain);
+
+    this.analyser = audioContext.createAnalyser();
+    this.masterGain.connect(this.analyser);
+
+    if (typeof analyser === 'object') {
+      Object.assign(this.analyser, analyser);
+    }
+
+    this.minBin = (typeof minFrequency !== 'undefined'
+      ? Math.max(0,
+        Math.min(this.analyser.frequencyBinCount,
+          Math.round(minFrequency * this.analyser.fftSize
+            / audioContext.sampleRate)))
+      : 0);
+
+    this.maxBin = (typeof maxFrequency !== 'undefined'
+      ? Math.max(this.minBin,
+        Math.min(this.analyser.frequencyBinCount - 1,
+          Math.round(maxFrequency * this.analyser.fftSize
+            / audioContext.sampleRate)))
+      : this.analyser.frequencyBinCount - 1);
+
+    // normalise bin count and byte values of analyser node
+    this.normalisation = 1. / (255 * (this.maxBin - this.minBin + 1));
+
+    // pre-allocation
+    this.magnitudes = new Uint8Array(this.analyser.frequencyBinCount);
+
+    this.sourcesOld = undefined;
+    this.connect({sources});
+  }
+
+  connect({
+    sources,
+  } = {}) {
+    this.disconnect();
+    this.sources = sources;
+
+    if (typeof this.sources !== 'undefined') {
+      for (let s of this.sources) {
+        s.connect(this.masterGain);
+      }
+    }
+  }
+
+  disconnect() {
+    if (typeof this.sources !== 'undefined') {
+      for (let s of this.sources) {
+        s.disconnect(this.masterGain);
+      }
+    }
+    this.sourcesOld = this.sources;
+    this.sources = undefined;
+  }
+
+  reconnect() {
+    this.connect({ sources: this.sourcesOld });
+  }
+
+  getAmplitude() {
+    let amplitude = 0;
+    if (typeof this.sources !== 'undefined') {
+      this.analyser.getByteFrequencyData(this.magnitudes);
+
+      for (let i = this.minBin; i <= this.maxBin; ++i) {
+        amplitude += this.magnitudes[i];
+      }
+      amplitude *= this.normalisation;
+    }
+
+    return amplitude;
   }
 
 }
