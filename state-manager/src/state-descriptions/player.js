@@ -1,4 +1,3 @@
-// src/server/schemas/player.js
 export default {
   id: {
     type: 'integer',

@@ -1,0 +1,8 @@
+name: state-manager
+author: ""
+clients:
+  player:
+    runtime: browser
+    default: true
+  controller:
+    runtime: browser

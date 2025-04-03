@@ -1,25 +1,20 @@
 import '@soundworks/helpers/polyfills.js';
 import { Client } from '@soundworks/core/client.js';
-import launcher from '@soundworks/helpers/launcher.js';
-
+import { loadConfig, launcher } from '@soundworks/helpers/browser.js';
 import { html, render } from 'lit';
-import '@ircam/sc-components/sc-number.js';
-import '@ircam/sc-components/sc-slider.js';
-import '@ircam/sc-components/sc-text.js';
-import '@ircam/sc-components/sc-toggle.js';
 
-import '../components/sw-audit.js';
+import '@ircam/sc-components';
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
 // - Issue Tracker:         https://github.com/collective-soundworks/soundworks/issues
 // - Wizard & Tools:        `npx soundworks`
 
-const config = window.SOUNDWORKS_CONFIG;
-
 async function main($container) {
+  const config = loadConfig();
   const client = new Client(config);
 
+  // cf. https://soundworks.dev/tools/helpers.html#browserlauncher
   launcher.register(client, {
     initScreensContainer: $container,
     reloadOnVisibilityChange: false,
@@ -27,7 +22,7 @@ async function main($container) {
 
   await client.start();
 
-  const global = await client.stateManager.attach('global');
+  const global = await client.stateManager.attach('global'); // [!code ++]
   const players = await client.stateManager.getCollection('player');
 
   function renderApp() {
@@ -41,19 +36,19 @@ async function main($container) {
           <div>
             <h2>Global</h2>
             <div style="padding-bottom: 4px;">
-              <sc-text readonly value="volume (dB)"></sc-text>
+              <sc-text readonly>volume (dB)</sc-text>
               <sc-slider
                 min="-60"
                 max="6"
                 value=${global.get('volume')}
-                @input=${e => global.set({ volume: e.detail.value })}
+                @input=${e => global.set('volume', e.detail.value)}
               ></sc-slider>
             </div>
             <div style="padding-bottom: 4px;">
-              <sc-text readonly value="mute"></sc-text>
+              <sc-text readonly>mute</sc-text>
               <sc-toggle
                 ?active=${global.get('mute')}
-                @change=${e => global.set({ mute: e.detail.value })}
+                @change=${e => global.set('mute', e.detail.value)}
               ></sc-toggle>
             </div>
           </div>
@@ -62,12 +57,12 @@ async function main($container) {
             ${players.map(player => {
               return html`
                 <div>
-                  <sc-text>player: ${player.get('id')} - frequency</sc-text>
+                  <sc-text>player ${player.get('id')} - frequency</sc-text>
                   <sc-number
-                    min="50"
-                    max="1000"
+                    min=${player.getDescription('frequency').min}
+                    max=${player.getDescription('frequency').max}
                     value=${player.get('frequency')}
-                    @input=${e => player.set({ frequency: e.detail.value })}
+                    @input=${e => player.set('frequency', e.detail.value)}
                   ></sc-number>
                 </div>
               `
@@ -78,16 +73,13 @@ async function main($container) {
     `, $container);
   }
 
-  // update interface when the shared state values are updated
   global.onUpdate(() => renderApp());
-  players.onAttach(() => renderApp());
-  players.onDetach(() => renderApp());
-  players.onUpdate(() => renderApp());
+  players.onChange(() => renderApp());
 
   renderApp();
 }
 
 launcher.execute(main, {
-  numClients: parseInt(new URLSearchParams(window.location.search).get('emulate')) || 1,
+  numClients: parseInt(new URLSearchParams(window.location.search).get('emulate') || '') || 1,
   width: '50%',
 });
