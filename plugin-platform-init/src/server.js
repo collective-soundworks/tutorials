@@ -1,11 +1,9 @@
 import '@soundworks/helpers/polyfills.js';
+import '@soundworks/helpers/catch-unhandled-errors.js';
 import { Server } from '@soundworks/core/server.js';
+import { loadConfig, configureHttpRouter } from '@soundworks/helpers/server.js';
 
-// import the server-side part of the `platform-init` plugin
-import pluginPlatformInit from '@soundworks/plugin-platform-init/server.js';
-
-import { loadConfig } from '../utils/load-config.js';
-import '../utils/catch-unhandled-errors.js';
+import ServerPluginPlatformInit from '@soundworks/plugin-platform-init/server.js';
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
@@ -21,18 +19,11 @@ console.log(`
 --------------------------------------------------------
 `);
 
-/**
- * Create the soundworks server
- */
 const server = new Server(config);
-// configure the server for usage within this application template
-server.useDefaultApplicationTemplate();
-// register the plugin into the soundworks' plugin manager
-server.pluginManager.register('platform-init', pluginPlatformInit);
+configureHttpRouter(server);
 
-/**
- * Launch application (init plugins, http server, etc.)
- */
+server.pluginManager.register('platform-init', ServerPluginPlatformInit);
+
 await server.start();
 
 // and do your own stuff!

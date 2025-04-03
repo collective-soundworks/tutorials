@@ -1,0 +1,6 @@
+name: Hello Plugins
+author: me & myself
+clients:
+  player:
+    runtime: browser
+    default: true

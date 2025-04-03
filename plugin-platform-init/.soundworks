@@ -1,5 +1,6 @@
 {
   "name": "plugin-platform-init",
-  "eslint": true,
-  "language": "js"
+  "createVersion": "5.0.3",
+  "language": "js",
+  "configFormat": "yaml"
 }
