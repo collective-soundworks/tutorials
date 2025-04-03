@@ -1,0 +1,6 @@
+name: getting-started
+author: ""
+clients:
+  player:
+    runtime: browser
+    default: true
