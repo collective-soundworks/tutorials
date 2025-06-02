@@ -1,5 +1,6 @@
 {
   "name": "todo-noise",
-  "eslint": true,
-  "language": "js"
+  "createVersion": "5.0.3",
+  "language": "js",
+  "configFormat": "yaml"
 }

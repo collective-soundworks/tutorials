@@ -1,25 +1,23 @@
 import '@soundworks/helpers/polyfills.js';
 import { Client } from '@soundworks/core/client.js';
-import launcher from '@soundworks/helpers/launcher.js';
-
+import { loadConfig, launcher } from '@soundworks/helpers/browser.js';
 import { html, render } from 'lit';
-import '../components/sw-audit.js';
 
 import '@ircam/sc-components/sc-text.js';
 import '@ircam/sc-components/sc-slider.js';
 import '@ircam/sc-components/sc-toggle.js';
-import '../components/sw-player.js';
+import './components/sw-player.js'; // [!code ++]
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
 // - Issue Tracker:         https://github.com/collective-soundworks/soundworks/issues
 // - Wizard & Tools:        `npx soundworks`
 
-const config = window.SOUNDWORKS_CONFIG;
-
 async function main($container) {
+  const config = loadConfig();
   const client = new Client(config);
 
+  // cf. https://soundworks.dev/tools/helpers.html#browserlauncher
   launcher.register(client, {
     initScreensContainer: $container,
     reloadOnVisibilityChange: false,
@@ -28,7 +26,7 @@ async function main($container) {
   await client.start();
 
   const global = await client.stateManager.attach('global');
-  const players = await client.stateManager.getCollection('player');
+  const players = await client.stateManager.getCollection('player'); // [!code ++]
 
   function renderApp() {
     render(html`
@@ -38,26 +36,27 @@ async function main($container) {
           <sw-audit .client="${client}"></sw-audit>
         </header>
         <section>
-          <h2>Global</h2>
+          <h1>Global</h1>
           <div style="padding-bottom: 4px">
             <sc-text>master</sc-text>
             <sc-slider
-              min=${global.getSchema('master').min}
-              max=${global.getSchema('master').max}
+              min=${global.getDescription('master').min}
+              max=${global.getDescription('master').max}
               value=${global.get('master')}
-              @input=${e => global.set({ master: e.detail.value })}
+              @input=${e => global.set('master', e.detail.value)}
             ></sc-slider>
           </div>
           <div style="padding-bottom: 4px">
             <sc-text>mute</sc-text>
             <sc-toggle
               ?active=${global.get('mute')}
-              @change=${e => global.set({ mute: e.detail.value })}
+              @change=${e => global.set('mute', e.detail.value)}
             ></sc-toggle>
           </div>
 
-          ${players.map(player => {
-            return html`<sw-player .player=${player}></sw-player>`;
+          <h1>Players</h1>
+          ${players.map(player => { // [!code ++]
+            return html`<sw-player .player=${player}></sw-player>`; // [!code ++]
           })}
         </section>
       </div>
@@ -65,13 +64,10 @@ async function main($container) {
   }
 
   global.onUpdate(() => renderApp(), true);
-  // refresh the screen on each players collection event
-  players.onAttach(() => renderApp());
-  players.onDetach(() => renderApp());
-  players.onUpdate(() => renderApp());
+  players.onChange(() => renderApp(), true);
 }
 
 launcher.execute(main, {
-  numClients: parseInt(new URLSearchParams(window.location.search).get('emulate')) || 1,
+  numClients: parseInt(new URLSearchParams(window.location.search).get('emulate') || '') || 1,
   width: '50%',
 });

@@ -1,0 +1,8 @@
+name: todo-noise
+author: ""
+clients:
+  player:
+    runtime: browser
+    default: true
+  controller:
+    runtime: browser
