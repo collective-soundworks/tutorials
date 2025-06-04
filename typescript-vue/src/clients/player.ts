@@ -1,9 +1,9 @@
 import '@soundworks/helpers/polyfills.js';
-import { Client } from '@soundworks/core/client.js';
+import { Client, type ClientConfig } from '@soundworks/core/client.js';
 import { loadConfig, launcher } from '@soundworks/helpers/browser.js';
 
 import { createApp } from 'vue';
-import App from './App.vue';
+import Player from './Player.vue';
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
@@ -11,7 +11,7 @@ import App from './App.vue';
 // - Wizard & Tools:        `npx soundworks`
 
 async function main($container) {
-  const config = loadConfig();
+  const config: ClientConfig = loadConfig();
   const client = new Client(config);
 
   // Eventually register plugins
@@ -22,7 +22,7 @@ async function main($container) {
 
   await client.start();
 
-  const app = createApp(App);
+  const app = createApp(Player);
   app.config.globalProperties = { client };
   app.mount($container);
 }
