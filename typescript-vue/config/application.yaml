@@ -1,0 +1,6 @@
+name: test-create
+author: ""
+clients:
+  player:
+    runtime: browser
+    default: true
