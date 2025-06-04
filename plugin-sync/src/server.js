@@ -1,10 +1,9 @@
 import '@soundworks/helpers/polyfills.js';
+import '@soundworks/helpers/catch-unhandled-errors.js';
 import { Server } from '@soundworks/core/server.js';
-import pluginSync from '@soundworks/plugin-sync/server.js';
-import pluginPlatformInit from '@soundworks/plugin-platform-init/server.js';
-
-import { loadConfig } from '../utils/load-config.js';
-import '../utils/catch-unhandled-errors.js';
+import { loadConfig, configureHttpRouter } from '@soundworks/helpers/server.js';
+import ServerPluginPlatformInit from '@soundworks/plugin-platform-init/server.js';
+import ServerPluginSync from '@soundworks/plugin-sync/server.js';
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
@@ -20,20 +19,21 @@ console.log(`
 --------------------------------------------------------
 `);
 
-/**
- * Create the soundworks server
- */
 const server = new Server(config);
-// configure the server for usage within this application template
-server.useDefaultApplicationTemplate();
-// register plugins
-server.pluginManager.register('platform-init', pluginPlatformInit);
-server.pluginManager.register('sync', pluginSync);
+configureHttpRouter(server);
 
-/**
- * Launch application (init plugins, http server, etc.)
- */
+server.pluginManager.register('platform-init', ServerPluginPlatformInit);
+server.pluginManager.register('sync', ServerPluginSync);
+
+server.stateManager.defineClass('global', {
+  triggerTime: {
+    type: 'float',
+    event: true,
+  },
+});
+
 await server.start();
+// create a global state on which all clients will attach
+const _ = await server.stateManager.create('global');
 
-// and do your own stuff!
 

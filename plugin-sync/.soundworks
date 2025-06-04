@@ -1,5 +1,7 @@
 {
   "name": "plugin-sync",
-  "eslint": true,
-  "language": "js"
+  "createVersion": "5.0.4",
+  "language": "js",
+  "template": "js",
+  "configFormat": "yaml"
 }

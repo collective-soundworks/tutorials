@@ -1,0 +1,6 @@
+name: plugin-sync
+author: ""
+clients:
+  player:
+    runtime: browser
+    default: true
