@@ -1,0 +1,8 @@
+name: node-clients
+author: ""
+clients:
+  controller:
+    runtime: browser
+    default: true
+  thing:
+    runtime: node

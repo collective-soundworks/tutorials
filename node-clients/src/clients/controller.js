@@ -1,23 +1,18 @@
 import '@soundworks/helpers/polyfills.js';
 import { Client } from '@soundworks/core/client.js';
-import launcher from '@soundworks/helpers/launcher.js';
-
+import { loadConfig, launcher } from '@soundworks/helpers/browser.js';
 import { html, render } from 'lit';
-import '../components/sw-audit.js';
-
-import '@ircam/sc-components/sc-text.js';
-import '@ircam/sc-components/sc-button.js';
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
 // - Issue Tracker:         https://github.com/collective-soundworks/soundworks/issues
 // - Wizard & Tools:        `npx soundworks`
 
-const config = window.SOUNDWORKS_CONFIG;
-
 async function main($container) {
+  const config = loadConfig();
   const client = new Client(config);
 
+  // cf. https://soundworks.dev/tools/helpers.html#browserlauncher
   launcher.register(client, {
     initScreensContainer: $container,
     reloadOnVisibilityChange: false,
@@ -25,12 +20,9 @@ async function main($container) {
 
   await client.start();
 
-  // create the collection and update the GUI on every collection event
   const thingCollection = await client.stateManager.getCollection('thing');
-
-  thingCollection.onUpdate(() => renderApp());
-  thingCollection.onAttach(() => renderApp());
-  thingCollection.onDetach(() => renderApp());
+  // update GUI when any changes in the collection occurs
+  thingCollection.onChange(() => renderApp());
 
   function renderApp() {
     render(html`
@@ -40,6 +32,7 @@ async function main($container) {
           <sw-audit .client="${client}"></sw-audit>
         </header>
         <section>
+          <p>Hello ${client.config.app.name}!</p>
           ${thingCollection.map(thing => {
             return html`
               <div>
@@ -59,6 +52,6 @@ async function main($container) {
 }
 
 launcher.execute(main, {
-  numClients: parseInt(new URLSearchParams(window.location.search).get('emulate')) || 1,
+  numClients: parseInt(new URLSearchParams(window.location.search).get('emulate') || '') || 1,
   width: '50%',
 });

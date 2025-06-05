@@ -1,5 +1,7 @@
 {
   "name": "node-clients",
-  "eslint": true,
-  "language": "js"
+  "createVersion": "5.0.5",
+  "language": "js",
+  "template": "js",
+  "configFormat": "yaml"
 }
